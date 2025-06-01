@@ -1,11 +1,10 @@
-import React from "react";
-
 const Toolbar = ({
   currentForm,
   handleFormUpdate,
   previewMode,
   setPreviewMode,
   handlePublish,
+  handlePreview,
   navigate,
 }) => {
   return (
@@ -15,6 +14,7 @@ const Toolbar = ({
         value={currentForm.title}
         onChange={(e) => handleFormUpdate({ title: e.target.value })}
         className="text-xl font-semibold outline-none bg-transparent dark:text-white"
+        placeholder="Untitled Form"
       />
 
       <div className="flex items-center gap-3">
@@ -27,6 +27,13 @@ const Toolbar = ({
           <option value="tablet">Tablet</option>
           <option value="mobile">Mobile</option>
         </select>
+
+        <button
+          onClick={handlePreview}
+          className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        >
+          Preview
+        </button>
 
         <button
           onClick={handlePublish}

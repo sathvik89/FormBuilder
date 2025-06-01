@@ -7,7 +7,9 @@ export const generateFormId = () => {
 };
 
 export const getShareableUrl = (formId) => {
-  return `${window.location.origin}/form/${formId}`;
+  //  using the correct base URL
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/form/${formId}`;
 };
 
 export const copyToClipboard = async (text) => {
@@ -15,14 +17,23 @@ export const copyToClipboard = async (text) => {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (err) {
-    // fallback for older browsers
+    console.error("Failed to copy to clipboard:", err);
+
+    // Fallback for older browsers
     const textArea = document.createElement("textarea");
     textArea.value = text;
     document.body.appendChild(textArea);
     textArea.select();
-    document.execCommand("copy");
-    document.body.removeChild(textArea);
-    return true;
+
+    try {
+      document.execCommand("copy");
+      return true;
+    } catch (err) {
+      console.error("Fallback clipboard copy failed:", err);
+      return false;
+    } finally {
+      document.body.removeChild(textArea);
+    }
   }
 };
 

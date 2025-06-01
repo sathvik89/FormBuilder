@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext, useState, useEffect } from "react";
 
 const AppContext = createContext();
@@ -12,19 +14,21 @@ export const useAppContext = () => {
 
 export const AppProvider = ({ children }) => {
   const [forms, setForms] = useState([]);
-  const [currentForm, setCurrentForm] = useState(null);
   const [theme, setTheme] = useState("light");
 
-  // load data from localStorage on mount
+  // Loading data from localStorage on mount
   useEffect(() => {
     const savedForms = localStorage.getItem("formcraft_forms");
     const savedTheme = localStorage.getItem("formcraft_theme");
 
     if (savedForms) {
       try {
-        setForms(JSON.parse(savedForms));
+        const parsedForms = JSON.parse(savedForms);
+        setForms(parsedForms);
+        console.log("Loaded forms from localStorage:", parsedForms);
       } catch (error) {
         console.error("Error loading forms:", error);
+        setForms([]);
       }
     }
 
@@ -36,38 +40,41 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Save forms to localStorage
+  // Save forms to localStorage whenever forms change
   useEffect(() => {
-    localStorage.setItem("formcraft_forms", JSON.stringify(forms));
+    if (forms.length >= 0) {
+      localStorage.setItem("formcraft_forms", JSON.stringify(forms));
+      console.log("Saved forms to localStorage:", forms);
+    }
   }, [forms]);
 
-  // Save theme to localStorage
-  useEffect(() => {
-    localStorage.setItem("formcraft_theme", theme);
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
-
   const saveForm = (formData) => {
-    const existingIndex = forms.findIndex((f) => f.id === formData.id);
-    if (existingIndex >= 0) {
-      const updatedForms = [...forms];
-      updatedForms[existingIndex] = formData;
-      setForms(updatedForms);
-    } else {
-      setForms([...forms, formData]);
-    }
+    console.log("💾 Saving form:", formData.id);
+    setForms((prevForms) => {
+      const existingIndex = prevForms.findIndex((f) => f.id === formData.id);
+      if (existingIndex >= 0) {
+        // Update existing form
+        const updatedForms = [...prevForms];
+        updatedForms[existingIndex] = formData;
+        console.log("Updated existing form at index:", existingIndex);
+        return updatedForms;
+      } else {
+        // Add new form
+        console.log("Adding new form");
+        return [...prevForms, formData];
+      }
+    });
   };
 
   const deleteForm = (formId) => {
-    setForms(forms.filter((f) => f.id !== formId));
+    console.log("🗑️ Deleting form:", formId);
+    setForms((prevForms) => prevForms.filter((f) => f.id !== formId));
   };
 
   const getFormById = (formId) => {
-    return forms.find((f) => f.id === formId);
+    const form = forms.find((f) => f.id === formId);
+    console.log("🔍 Getting form by ID:", formId, "Found:", !!form);
+    return form;
   };
 
   const toggleTheme = () => {
@@ -76,8 +83,6 @@ export const AppProvider = ({ children }) => {
 
   const value = {
     forms,
-    currentForm,
-    setCurrentForm,
     theme,
     toggleTheme,
     saveForm,
@@ -85,9 +90,5 @@ export const AppProvider = ({ children }) => {
     getFormById,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      <div className={theme === "dark" ? "dark" : ""}>{children}</div>
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

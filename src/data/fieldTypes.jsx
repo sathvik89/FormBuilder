@@ -88,8 +88,21 @@ export const DEFAULT_FIELDS = [
       helpText: "",
     },
   },
+  {
+    type: FIELD_TYPES.NUMBER,
+    label: "Number",
+    icon: "🔢",
+    defaultProps: {
+      label: "Number",
+      placeholder: "Enter number...",
+      required: false,
+      min: "",
+      max: "",
+      helpText: "",
+    },
+  },
 ];
-//dummy templates here 
+
 export const FORM_TEMPLATES = [
   {
     id: "contact-us",

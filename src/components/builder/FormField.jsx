@@ -11,6 +11,7 @@ const FormField = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
+  // this function shows a basic preview based on field type
   const renderFieldPreview = () => {
     const baseInputClasses =
       "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors";
@@ -101,7 +102,7 @@ const FormField = ({
       } ${isDragging ? "shadow-2xl" : "hover:shadow-md"}`}
       onClick={onSelect}
     >
-      {/* drag handle */}
+      {/* drag handle dots appear when you hover */}
       <div
         {...dragHandleProps}
         className={`absolute left-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing ${
@@ -118,7 +119,7 @@ const FormField = ({
         </div>
       </div>
 
-      {/* field contents */}
+      {/* main field preview content */}
       <div className="ml-6">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -141,7 +142,7 @@ const FormField = ({
         </div>
       </div>
 
-      {/* action buttons */}
+      {/* buttons for edit and delete, shown only when selected */}
       {isSelected && (
         <div className="absolute top-4 right-4 flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-1">
           <button
@@ -150,7 +151,7 @@ const FormField = ({
               setIsEditing(true);
             }}
             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-            title="Edit field"
+            title="edit field"
           >
             <svg
               className="w-4 h-4"
@@ -176,7 +177,7 @@ const FormField = ({
               }
             }}
             className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-            title="Delete field"
+            title="delete field"
           >
             <svg
               className="w-4 h-4"
@@ -194,20 +195,6 @@ const FormField = ({
           </button>
         </div>
       )}
-
-      {/* field type indicator */}
-      <div className="absolute bottom-4 right-4">
-        <div className="text-2xl opacity-20 group-hover:opacity-40 transition-opacity">
-          {field.type === "text" && "📝"}
-          {field.type === "email" && "📧"}
-          {field.type === "phone" && "📞"}
-          {field.type === "textarea" && "📄"}
-          {field.type === "dropdown" && "📋"}
-          {field.type === "checkbox" && "☑️"}
-          {field.type === "date" && "📅"}
-          {field.type === "number" && "🔢"}
-        </div>
-      </div>
     </div>
   );
 };

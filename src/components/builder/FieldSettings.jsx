@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Button from "../common/Button";
 
@@ -61,7 +63,7 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
 
   return (
     <div className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-full">
-      {/* header */}
+      {/* Header */}
       <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700">
         <div className="flex items-center justify-between">
           <div>
@@ -93,7 +95,7 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
         </div>
       </div>
 
-      {/* tabs are hereee */}
+      {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
         {tabs.map((tab) => (
           <button
@@ -111,7 +113,7 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
         ))}
       </div>
 
-      {/* content */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         {activeTab === "basic" && (
           <div className="space-y-6">
@@ -145,7 +147,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </div>
             )}
 
-            {/* helping text */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Help Text
@@ -159,7 +160,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               />
             </div>
 
-            {/* options for dropdown */}
             {settings.type === "dropdown" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -216,7 +216,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </div>
             )}
 
-            {/* textarea rows */}
             {settings.type === "textarea" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -228,7 +227,7 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
                   max="10"
                   value={settings.rows || 4}
                   onChange={(e) =>
-                    handleChange("rows", parseInt(e.target.value))
+                    handleChange("rows", Number.parseInt(e.target.value))
                   }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
@@ -239,7 +238,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
 
         {activeTab === "validation" && (
           <div className="space-y-6">
-            {/* required field  */}
             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -260,7 +258,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </label>
             </div>
 
-            {/* text length reviewing */}
             {["text", "textarea"].includes(settings.type) && (
               <>
                 <div>
@@ -292,7 +289,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </>
             )}
 
-            {/* number validationing */}
             {settings.type === "number" && (
               <>
                 <div>
@@ -340,7 +336,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </div>
             </div>
 
-            {/* field ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Field ID
@@ -356,7 +351,6 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
               </p>
             </div>
 
-            {/* field types */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Field Type
@@ -375,7 +369,7 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
         )}
       </div>
 
-      {/* footer of the page */}
+      {/* Footer */}
       <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
         <div className="flex space-x-3">
           <Button variant="outline" onClick={onClose} className="flex-1">

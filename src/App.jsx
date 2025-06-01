@@ -1,17 +1,33 @@
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+"use client";
+
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  BrowserRouter,
+} from "react-router-dom";
+import { AppProvider } from "./context/AppContext";
+import Header from "./components/common/Header";
 import HomePage from "./pages/HomePage";
 import BuilderPage from "./pages/BuilderPage";
-import { AppProvider } from "./context/AppContext";
+import FormPreviewPage from "./pages/FormPreviewPage";
+import FormFillerPage from "./pages/FormFillerPage";
 
 function App() {
   return (
     <BrowserRouter>
       <AppProvider>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/builder" element={<BuilderPage />} />
-        </Routes>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <Header />
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/builder" element={<BuilderPage />} />
+            <Route path="/builder/:formId" element={<BuilderPage />} />
+            <Route path="/preview/:formId" element={<FormPreviewPage />} />
+            <Route path="/form/:formId" element={<FormFillerPage />} />
+            <Route path="/demo" element={<FormPreviewPage />} />
+          </Routes>
+        </div>
       </AppProvider>
     </BrowserRouter>
   );

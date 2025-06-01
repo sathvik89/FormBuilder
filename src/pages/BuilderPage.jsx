@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { DragDropContext } from "@hello-pangea/dnd";
 import { useAppContext } from "../context/AppContext";
 import {
   generateFormId,
@@ -17,162 +20,321 @@ import ShareModal from "../components/builder/ShareModal";
 const BuilderPage = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { currentForm, setCurrentForm, saveForm, getFormById } =
-    useAppContext();
+  const { saveForm, getFormById } = useAppContext();
 
+  // Local state for the current form being edited
+  const [currentForm, setCurrentForm] = useState(null);
   const [selectedFieldId, setSelectedFieldId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [previewMode, setPreviewMode] = useState("desktop");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Use refs to track state and prevent infinite loops
+  const isInitialized = useRef(false);
+  const autoSaveTimeout = useRef(null);
+  const lastSavedForm = useRef(null);
+
+  // Initialize form on mount
   useEffect(() => {
-    if (formId) {
-      const existingForm = getFormById(formId);
-      if (existingForm) {
-        setCurrentForm(existingForm);
+    const initializeForm = () => {
+      if (formId) {
+        const existingForm = getFormById(formId);
+        if (existingForm) {
+          setCurrentForm(existingForm);
+          lastSavedForm.current = JSON.stringify(existingForm);
+        } else {
+          navigate("/builder");
+          return;
+        }
       } else {
-        navigate("/builder");
-      }
-    } else {
-      const newForm = {
-        id: generateFormId(),
-        title: "Untitled Form",
-        description: "",
-        steps: [
-          {
-            id: generateId(),
-            title: "Step 1",
-            fields: [],
-          },
-        ],
-        currentStepIndex: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isPublished: false,
-        responses: [],
-      };
-      setCurrentForm(newForm);
-    }
-  }, [formId]);
-
-  useEffect(() => {
-    if (currentForm && currentForm.id) {
-      const timer = setTimeout(() => {
-        saveForm({
-          ...currentForm,
+        // Create new form
+        const newForm = {
+          id: generateFormId(),
+          title: "Untitled Form",
+          description: "",
+          steps: [
+            {
+              id: generateId(),
+              title: "Step 1",
+              fields: [],
+            },
+          ],
+          currentStepIndex: 0,
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        });
-      }, 1000);
+          isPublished: false,
+          responses: [],
+        };
+        setCurrentForm(newForm);
+        lastSavedForm.current = JSON.stringify(newForm);
+      }
+      isInitialized.current = true;
+      setIsLoading(false);
+    };
 
-      return () => clearTimeout(timer);
+    if (!isInitialized.current) {
+      initializeForm();
     }
+  }, [formId, getFormById, navigate]);
+
+  // Auto-save with debounce - only when form actually changes
+  useEffect(() => {
+    if (!isInitialized.current || !currentForm) return;
+
+    const currentFormString = JSON.stringify(currentForm);
+
+    // Only save if form has actually changed
+    if (lastSavedForm.current === currentFormString) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (autoSaveTimeout.current) {
+      clearTimeout(autoSaveTimeout.current);
+    }
+
+    // Set new timeout for auto-save
+    autoSaveTimeout.current = setTimeout(() => {
+      const formToSave = {
+        ...currentForm,
+        updatedAt: new Date().toISOString(),
+      };
+      saveForm(formToSave);
+      lastSavedForm.current = JSON.stringify(formToSave);
+    }, 1000);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (autoSaveTimeout.current) {
+        clearTimeout(autoSaveTimeout.current);
+      }
+    };
   }, [currentForm, saveForm]);
 
-  const handleFieldAdd = (fieldType) => {
-    if (!currentForm) return;
+  // Handle adding a new field to the current step
+  const handleFieldAdd = useCallback(
+    (fieldType) => {
 
-    const fieldConfig = DEFAULT_FIELDS.find((f) => f.type === fieldType);
-    const newField = {
-      id: generateId(),
-      type: fieldType,
-      ...fieldConfig.defaultProps,
-    };
+      if (!currentForm) {
+        return;
+      }
 
-    const updatedSteps = [...currentForm.steps];
-    const currentStepIndex = currentForm.currentStepIndex || 0;
-    updatedSteps[currentStepIndex] = {
-      ...updatedSteps[currentStepIndex],
-      fields: [...(updatedSteps[currentStepIndex].fields || []), newField],
-    };
+      const fieldConfig = DEFAULT_FIELDS.find((f) => f.type === fieldType);
+      if (!fieldConfig) {
+        return;
+      }
 
-    setCurrentForm({
-      ...currentForm,
-      steps: updatedSteps,
+      const newField = {
+        id: generateId(),
+        type: fieldType,
+        ...fieldConfig.defaultProps,
+      };
+
+
+      setCurrentForm((prevForm) => {
+        const updatedSteps = [...prevForm.steps];
+        const currentStepIndex = prevForm.currentStepIndex || 0;
+
+        updatedSteps[currentStepIndex] = {
+          ...updatedSteps[currentStepIndex],
+          fields: [...(updatedSteps[currentStepIndex].fields || []), newField],
+        };
+
+        const updatedForm = {
+          ...prevForm,
+          steps: updatedSteps,
+        };
+        return updatedForm;
+      });
+
+      // Auto-select the new field and show settings
+      setSelectedFieldId(newField.id);
+      setShowSettings(true);
+    },
+    [currentForm]
+  );
+
+  // Handle updates to a specific field
+  const handleFieldUpdate = useCallback((fieldId, updates) => {
+
+    setCurrentForm((prevForm) => {
+      if (!prevForm) return prevForm;
+
+      const updatedSteps = [...prevForm.steps];
+      const currentStepIndex = prevForm.currentStepIndex || 0;
+
+      updatedSteps[currentStepIndex] = {
+        ...updatedSteps[currentStepIndex],
+        fields: updatedSteps[currentStepIndex].fields.map((field) =>
+          field.id === fieldId ? { ...field, ...updates } : field
+        ),
+      };
+
+      return {
+        ...prevForm,
+        steps: updatedSteps,
+      };
     });
+  }, []);
 
-    setSelectedFieldId(newField.id);
-    setShowSettings(true);
-  };
+  // Handle deleting a specific field
+  const handleFieldDelete = useCallback(
+    (fieldId) => {
+      console.log("deleting field:", fieldId);
 
-  const handleFieldUpdate = (fieldId, updates) => {
-    if (!currentForm) return;
+      setCurrentForm((prevForm) => {
+        if (!prevForm) return prevForm;
 
-    const updatedSteps = [...currentForm.steps];
-    const currentStepIndex = currentForm.currentStepIndex || 0;
-    const currentStep = updatedSteps[currentStepIndex];
+        const updatedSteps = [...prevForm.steps];
+        const currentStepIndex = prevForm.currentStepIndex || 0;
 
-    currentStep.fields = currentStep.fields.map((field) =>
-      field.id === fieldId ? { ...field, ...updates } : field
-    );
+        updatedSteps[currentStepIndex] = {
+          ...updatedSteps[currentStepIndex],
+          fields: updatedSteps[currentStepIndex].fields.filter(
+            (field) => field.id !== fieldId
+          ),
+        };
 
-    setCurrentForm({
-      ...currentForm,
-      steps: updatedSteps,
-    });
-  };
+        return {
+          ...prevForm,
+          steps: updatedSteps,
+        };
+      });
 
-  const handleFieldDelete = (fieldId) => {
-    if (!currentForm) return;
+      if (selectedFieldId === fieldId) {
+        setSelectedFieldId(null);
+        setShowSettings(false);
+      }
+    },
+    [selectedFieldId]
+  );
 
-    const updatedSteps = [...currentForm.steps];
-    const currentStepIndex = currentForm.currentStepIndex || 0;
-    const currentStep = updatedSteps[currentStepIndex];
-
-    currentStep.fields = currentStep.fields.filter(
-      (field) => field.id !== fieldId
-    );
-
-    setCurrentForm({
-      ...currentForm,
-      steps: updatedSteps,
-    });
-
-    if (selectedFieldId === fieldId) {
-      setSelectedFieldId(null);
-      setShowSettings(false);
-    }
-  };
-
-  const handleFieldSelect = (fieldId) => {
+  // Handle selecting a field to show settings
+  const handleFieldSelect = useCallback((fieldId) => {
+    console.log("👆 Selecting field:", fieldId);
     setSelectedFieldId(fieldId);
     setShowSettings(true);
-  };
+  }, []);
 
-  const handleFormUpdate = (updates) => {
-    setCurrentForm({
-      ...currentForm,
+  // Handle updates to the form itself (title, description, etc.)
+  const handleFormUpdate = useCallback((updates) => {
+    console.log("📝 Updating form with:", updates);
+    setCurrentForm((prevForm) => ({
+      ...prevForm,
       ...updates,
-    });
-  };
+    }));
+  }, []);
 
-  const handlePublish = () => {
-    if (currentForm) {
-      const publishedForm = {
-        ...currentForm,
-        isPublished: true,
-        updatedAt: new Date().toISOString(),
-      };
-      setCurrentForm(publishedForm);
-      saveForm(publishedForm);
-      setShowShareModal(true);
+  // Publish the form
+  const handlePublish = useCallback(() => {
+    if (!currentForm) return;
+
+    const publishedForm = {
+      ...currentForm,
+      isPublished: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Immediately save to ensure it's available for sharing
+    saveForm(publishedForm);
+
+    setCurrentForm(publishedForm);
+    lastSavedForm.current = JSON.stringify(publishedForm);
+
+    setShowShareModal(true);
+  }, [currentForm, saveForm]);
+
+  // Preview the form
+  const handlePreview = useCallback(() => {
+    if (!currentForm) return;
+
+
+    // Save current form state before navigating
+    const formToSave = {
+      ...currentForm,
+      updatedAt: new Date().toISOString(),
+    };
+    saveForm(formToSave);
+
+    // Navigate to preview page
+    navigate(`/preview/${currentForm.id}`);
+  }, [currentForm, navigate, saveForm]);
+
+  // Copy share URL to clipboard
+  const handleShare = useCallback(async () => {
+    if (!currentForm) return;
+
+    const shareUrl = getShareableUrl(currentForm.id);
+
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      alert("Form link copied to clipboard!");
     }
-  };
+  }, [currentForm]);
 
-  const handleShare = async () => {
-    if (currentForm) {
-      const shareUrl = getShareableUrl(currentForm.id);
-      const success = await copyToClipboard(shareUrl);
-      if (success) {
-        alert("Form link copied to clipboard!");
+  // Handle drag end - this is the key function for drag and drop
+  const handleDragEnd = useCallback(
+    (result) => {
+
+      if (!result.destination) {
+        return;
       }
-    }
-  };
 
-  const selectedField = currentForm?.steps[
+      const { source, destination, draggableId } = result;
+
+      // Handle dragging from palette to canvas
+      if (
+        source.droppableId === "field-palette" &&
+        destination.droppableId === "form-canvas"
+      ) {
+
+        // Extract field type from draggableId (format: "palette-fieldType")
+        const fieldType = draggableId.replace("palette-", "");
+
+        handleFieldAdd(fieldType);
+        return;
+      }
+
+      // Handle reordering within canvas
+      if (
+        source.droppableId === "form-canvas" &&
+        destination.droppableId === "form-canvas"
+      ) {
+
+        setCurrentForm((prevForm) => {
+          if (!prevForm) return prevForm;
+
+          const currentStepIndex = prevForm.currentStepIndex || 0;
+          const updatedSteps = [...prevForm.steps];
+          const currentStep = updatedSteps[currentStepIndex];
+          const fields = Array.from(currentStep.fields);
+
+          // Remove dragged field and insert at new position
+          const [removed] = fields.splice(source.index, 1);
+          fields.splice(destination.index, 0, removed);
+
+          updatedSteps[currentStepIndex] = {
+            ...currentStep,
+            fields,
+          };
+
+          return {
+            ...prevForm,
+            steps: updatedSteps,
+          };
+        });
+      }
+    },
+    [handleFieldAdd]
+  );
+
+  // Get selected field
+  const selectedField = currentForm?.steps?.[
     currentForm.currentStepIndex || 0
   ]?.fields?.find((field) => field.id === selectedFieldId);
 
-  if (!currentForm) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -185,47 +347,68 @@ const BuilderPage = () => {
     );
   }
 
+  if (!currentForm) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-6xl mb-4">😕</div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Form Not Found
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Unable to load the form. Please try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex flex-col">
-      <Toolbar
-        currentForm={currentForm}
-        handleFormUpdate={handleFormUpdate}
-        previewMode={previewMode}
-        setPreviewMode={setPreviewMode}
-        handlePublish={handlePublish}
-        navigate={navigate}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        <FieldPalette onFieldAdd={handleFieldAdd} />
-
-        <FormCanvas
-          form={currentForm}
-          onFieldUpdate={handleFieldUpdate}
-          onFieldDelete={handleFieldDelete}
-          onFieldSelect={handleFieldSelect}
-          selectedFieldId={selectedFieldId}
-          onFieldAdd={handleFieldAdd}
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="h-screen flex flex-col">
+        <Toolbar
+          currentForm={currentForm}
+          handleFormUpdate={handleFormUpdate}
+          previewMode={previewMode}
+          setPreviewMode={setPreviewMode}
+          handlePublish={handlePublish}
+          handlePreview={handlePreview}
+          navigate={navigate}
         />
 
-        {showSettings && selectedField && (
-          <FieldSettings
-            field={selectedField}
-            onUpdate={(updates) => handleFieldUpdate(selectedField.id, updates)}
-            onClose={() => setShowSettings(false)}
+        <div className="flex-1 flex overflow-hidden">
+          <FieldPalette />
+
+          <FormCanvas
+            form={currentForm}
+            onFieldUpdate={handleFieldUpdate}
+            onFieldDelete={handleFieldDelete}
+            onFieldSelect={handleFieldSelect}
+            selectedFieldId={selectedFieldId}
+            currentStepIndex={currentForm.currentStepIndex || 0}
+          />
+
+          {showSettings && selectedField && (
+            <FieldSettings
+              field={selectedField}
+              onUpdate={(updates) =>
+                handleFieldUpdate(selectedField.id, updates)
+              }
+              onClose={() => setShowSettings(false)}
+            />
+          )}
+        </div>
+
+        {showShareModal && (
+          <ShareModal
+            formId={currentForm.id}
+            onClose={() => setShowShareModal(false)}
+            onCopy={handleShare}
+            navigate={navigate}
           />
         )}
       </div>
-
-      {showShareModal && (
-        <ShareModal
-          formId={currentForm.id}
-          onClose={() => setShowShareModal(false)}
-          onCopy={handleShare}
-          navigate={navigate}
-        />
-      )}
-    </div>
+    </DragDropContext>
   );
 };
 
