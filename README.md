@@ -10,11 +10,8 @@ A modern form builder application built with React.js that allows users to creat
 - **Drag & Drop Interface** - Add form fields by dragging from the palette
 - **Field Types** - Text, Email, Phone, Textarea, Dropdown, Checkbox, Date, Number
 - **Real-time Preview** - See changes instantly as you build
-- **Multi-step Forms** - Create complex forms with step navigation
-- **Responsive Design** - Works on desktop, tablet, and mobile
 - **Form Sharing** - Generate shareable links for your forms
 - **Auto-save** - Forms are automatically saved to localStorage
-- **Dark/Light Theme** - Toggle between themes
 - **Field Validation** - Required fields, min/max length, email/phone validation
 
 ## Tech Stack
