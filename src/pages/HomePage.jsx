@@ -73,7 +73,7 @@ const HomePage = () => {
                 onClick={() => navigate("/demo")}
                 className="text-lg px-8 py-4"
               >
-                <FaSearch /> <span className="pl-2">View Demo</span>
+                <FaSearch /> <span className="pl-2 font-serif">View Demo</span>
               </Button>
             </div>
           </div>
