@@ -56,9 +56,9 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
   if (!field) return null;
 
   const tabs = [
-    { id: "basic", label: "Basic", icon: "⚙️" },
-    { id: "validation", label: "Validation", icon: "✅" },
-    { id: "advanced", label: "Advanced", icon: "🔧" },
+    { id: "basic", label: "Basic" },
+    { id: "validation", label: "Validation" },
+    { id: "advanced", label: "Advanced" },
   ];
 
   return (
@@ -104,10 +104,9 @@ const FieldSettings = ({ field, onUpdate, onClose }) => {
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800"
-                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-black"
             }`}
           >
-            <span className="mr-2">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
